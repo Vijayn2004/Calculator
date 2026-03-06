@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Age Calculator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-blue: #4facfe;
+            --secondary-blue: #00f2fe;
+            --accent-pink: #ff3366;
+            --dark-navy: #0f172a;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #f8fafc;
+            color: #1e293b;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .main-card {
+            background: #ffffff;
+            border-radius: 30px;
+            border: none;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.05);
+            overflow: hidden;
+            max-width: 900px;
+            margin: auto;
+        }
+
+        .card-header-custom {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            padding: 40px;
+            text-align: center;
+            color: white;
+        }
+
+        .input-group-custom {
+            background: #f1f5f9;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #64748b;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-control {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-blue);
+            box-shadow: none;
+            background: #fff;
+        }
+
+        .age-display-box {
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+            border-radius: 24px;
+            padding: 30px;
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .main-age-text {
+            font-size: 3rem;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -1px;
+        }
+
+        .stat-card {
+            background: #fff;
+            border: 1px solid #f1f5f9;
+            padding: 20px;
+            border-radius: 18px;
+            text-align: center;
+            height: 100%;
+            transition: 0.3s;
+        }
+
+        .stat-card:hover {
+            border-color: var(--primary-blue);
+            transform: translateY(-5px);
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--dark-navy);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .life-progress-container {
+            background: #f1f5f9;
+            padding: 25px;
+            border-radius: 20px;
+            margin-top: 20px;
+        }
+
+        .progress {
+            height: 12px;
+            border-radius: 10px;
+            background: #e2e8f0;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, var(--primary-blue), var(--secondary-blue));
+            border-radius: 10px;
+        }
+
+        .birthday-banner {
+            background: #fff9e6;
+            border-left: 5px solid #ffcc00;
+            padding: 15px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .badge-pill {
+            background: rgba(255,255,255,0.2);
+            padding: 6px 15px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            backdrop-filter: blur(5px);
+        }
+
+        .placeholder-box {
+            padding: 60px;
+            text-align: center;
+            color: #94a3b8;
+        }
+
+        #error { color: #ef4444; font-weight: 600; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container py-4">
+    <div class="main-card">
+        <div class="card-header-custom">
+            <h2 class="fw-bold mb-2">Age Identity</h2>
+            <p class="opacity-75 mb-0">Discover your journey through time</p>
+        </div>
+
+        <div class="p-4 p-md-5">
+            <div class="input-group-custom">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <label class="form-label"><i class="fa-solid fa-cake-candles me-2"></i>Date of Birth</label>
+                        <input type="date" id="dob" class="form-control" oninput="validateAndCalculate()">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label"><i class="fa-solid fa-calendar-check me-2"></i>Age at the Date of</label>
+                        <input type="date" id="ageAt" class="form-control" oninput="validateAndCalculate()">
+                    </div>
+                </div>
+                <div id="error" class="mt-3 text-center small">⚠️ Birth date cannot be in the future!</div>
+            </div>
+
+            <div id="placeholder" class="placeholder-box">
+                <i class="fa-solid fa-chart-pie fa-3x mb-3 opacity-25"></i>
+                <h5>Waiting for Input</h5>
+                <p>Enter your birth date to see the complete breakdown.</p>
+            </div>
+
+            <div id="results" style="display: none;">
+                <div class="age-display-box">
+                    <div class="d-flex justify-content-center gap-2 mb-3">
+                        <span class="badge-pill" id="zodiac">Zodiac</span>
+                        <span class="badge-pill" id="dayBorn">Day</span>
+                    </div>
+                    <h1 class="main-age-text" id="mainAge">24 Years</h1>
+                    <p class="mb-0 opacity-90 mt-2" id="subAge">8 Months | 12 Days</p>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-6 col-md-4">
+                        <div class="stat-card">
+                            <span class="stat-value" id="resMonths">0</span>
+                            <span class="stat-label">Total Months</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="stat-card">
+                            <span class="stat-value" id="resWeeks">0</span>
+                            <span class="stat-label">Total Weeks</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="stat-card">
+                            <span class="stat-value" id="resTotalDays">0</span>
+                            <span class="stat-label">Total Days</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="stat-card">
+                            <span class="stat-value" id="resHours">0</span>
+                            <span class="stat-label">Total Hours</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="stat-card">
+                            <span class="stat-value" id="resMinutes">0</span>
+                            <span class="stat-label">Minutes</span>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <div class="stat-card">
+                            <span class="stat-value" id="resSeconds">0</span>
+                            <span class="stat-label">Seconds</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="birthday-banner">
+                    <i class="fa-solid fa-gift text-warning fa-2x"></i>
+                    <div>
+                        <h6 class="mb-0 fw-bold text-dark" id="nextBirthday">Loading...</h6>
+                        <p class="small text-muted mb-0">Don't forget to celebrate!</p>
+                    </div>
+                </div>
+
+                <div class="life-progress-container">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="small fw-bold">Life Progress (Target: 80 Yrs)</span>
+                        <span class="small fw-bold text-primary" id="progressPerc">0%</span>
+                    </div>
+                    <div class="progress">
+                        <div id="lifeBar" class="progress-bar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.onload = () => {
+        document.getElementById('ageAt').value = new Date().toISOString().split('T')[0];
+    };
+
+    function getZodiac(date) {
+        const day = date.getDate();
+        const month = date.getMonth() + 1;
+        if ((month == 3 && day >= 21) || (month == 4 && day <= 19)) return "♈ Aries";
+        if ((month == 4 && day >= 20) || (month == 5 && day <= 20)) return "♉ Taurus";
+        if ((month == 5 && day >= 21) || (month == 6 && day <= 20)) return "♊ Gemini";
+        if ((month == 6 && day >= 21) || (month == 7 && day <= 22)) return "♋ Cancer";
+        if ((month == 7 && day >= 23) || (month == 8 && day <= 22)) return "♌ Leo";
+        if ((month == 8 && day >= 23) || (month == 9 && day <= 22)) return "♍ Virgo";
+        if ((month == 9 && day >= 23) || (month == 10 && day <= 22)) return "♎ Libra";
+        if ((month == 10 && day >= 23) || (month == 11 && day <= 21)) return "♏ Scorpio";
+        if ((month == 11 && day >= 22) || (month == 12 && day <= 21)) return "♐ Sagittarius";
+        if ((month == 12 && day >= 22) || (month == 1 && day <= 19)) return "♑ Capricorn";
+        if ((month == 1 && day >= 20) || (month == 2 && day <= 18)) return "♒ Aquarius";
+        return "♓ Pisces";
+    }
+
+    function validateAndCalculate() {
+        const dobVal = document.getElementById('dob').value;
+        const ageAtVal = document.getElementById('ageAt').value;
+        
+        if (!dobVal || !ageAtVal) return;
+
+        const dob = new Date(dobVal);
+        const target = new Date(ageAtVal);
+        const error = document.getElementById('error');
+        const results = document.getElementById('results');
+        const placeholder = document.getElementById('placeholder');
+
+        if (dob > target) {
+            error.style.display = 'block';
+            results.style.display = 'none';
+            placeholder.style.display = 'block';
+            return;
+        }
+
+        error.style.display = 'none';
+        results.style.display = 'block';
+        placeholder.style.display = 'none';
+
+        updateUI(dob, target);
+    }
+
+    function updateUI(dob, target) {
+        let years = target.getFullYear() - dob.getFullYear();
+        let months = target.getMonth() - dob.getMonth();
+        let days = target.getDate() - dob.getDate();
+
+        if (days < 0) {
+            months--;
+            const lastMonth = new Date(target.getFullYear(), target.getMonth(), 0);
+            days += lastMonth.getDate();
+        }
+        if (months < 0) {
+            years--;
+            months += 12;
+        }
+
+        document.getElementById('mainAge').innerText = `${years} Years`;
+        document.getElementById('subAge').innerText = `${months} Months | ${days} Days`;
+ 
+        const diffMs = target - dob;
+        const totalDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const totalWeeks = Math.floor(totalDays / 7);
+        const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const totalMinutes = Math.floor(diffMs / (1000 * 60));
+        const totalSeconds = Math.floor(diffMs / 1000);
+
+        document.getElementById('resMonths').innerText = ((years * 12) + months).toLocaleString();
+        document.getElementById('resWeeks').innerText = totalWeeks.toLocaleString();
+        document.getElementById('resTotalDays').innerText = totalDays.toLocaleString();
+        document.getElementById('resHours').innerText = totalHours.toLocaleString();
+        document.getElementById('resMinutes').innerText = totalMinutes.toLocaleString();
+        document.getElementById('resSeconds').innerText = totalSeconds.toLocaleString();
+
+        const progress = Math.min((years / 80) * 100, 100).toFixed(1);
+        document.getElementById('lifeBar').style.width = progress + '%';
+        document.getElementById('progressPerc').innerText = progress + '%';
+        
+        document.getElementById('zodiac').innerText = getZodiac(dob);
+        document.getElementById('dayBorn').innerText = dob.toLocaleDateString('en-US', { weekday: 'long' });
+
+        let nextBday = new Date(target.getFullYear(), dob.getMonth(), dob.getDate());
+        if (target >= nextBday) nextBday.setFullYear(target.getFullYear() + 1);
+        const diff = Math.ceil((nextBday - target) / (1000 * 60 * 60 * 24));
+        document.getElementById('nextBirthday').innerText = `${diff} days left for your next birthday!`;
+    }
+</script>
+</body>
+</html>

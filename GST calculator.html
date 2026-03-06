@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GST Calculator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f4f7f9; color: #333; }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .btn-check:checked + .btn-outline-primary { background-color: #0d6efd; color: white; }
+        .result-box { background: #e9ecef; border-radius: 10px; padding: 15px; }
+        #gstChartContainer { max-width: 200px; margin: 0 auto; }
+    </style>
+</head>
+<body>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <h2 class="text-center mb-4 fw-bold text-primary">GST Calculator</h2>
+            
+            <div class="card p-4 card-box shadow">
+                <div class="row">
+                    <div class="col-md-6 border-end">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Amount (₹)</label>
+                            <input type="number" id="amount" class="form-control form-control-lg" placeholder="Enter Amount" oninput="calculateGST()">
+							<div id="errorMsg" class="text-danger small mt-1" style="display: none;">⚠️ The amount cannot be less than 0!</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">GST Rate (%)</label>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <input type="radio" class="btn-check" name="gstRate" id="r5" value="5" onchange="updateCustom(5)">
+                                <label class="btn btn-outline-primary" for="r5">5%</label>
+                                
+                                <input type="radio" class="btn-check" name="gstRate" id="r12" value="12" onchange="updateCustom(12)">
+                                <label class="btn btn-outline-primary" for="r12">12%</label>
+                                
+                                <input type="radio" class="btn-check" name="gstRate" id="r18" value="18" checked onchange="updateCustom(18)">
+                                <label class="btn btn-outline-primary" for="r18">18%</label>
+                                
+                                <input type="radio" class="btn-check" name="gstRate" id="r28" value="28" onchange="updateCustom(28)">
+                                <label class="btn btn-outline-primary" for="r28">28%</label>
+                                
+                                <input type="number" id="customGST" class="form-control d-inline-block" min="0" max="100" style="width: 80px;" placeholder="Custom" oninput="this.value=this.value.slice(0,3); if(this.value>100)this.value=100; manualGST();">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label d-block fw-semibold">GST Type</label>
+                            <div class="btn-group w-100">
+                                <input type="radio" class="btn-check" name="gstType" id="exclusive" value="exclusive" checked onchange="calculateGST()">
+                                <label class="btn btn-outline-secondary" for="exclusive">GST Exclusive (+)</label>
+                                <input type="radio" class="btn-check" name="gstType" id="inclusive" value="inclusive" onchange="calculateGST()">
+                                <label class="btn btn-outline-secondary" for="inclusive">GST Inclusive (-)</label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label d-block fw-semibold">State Type</label>
+                            <select id="stateType" class="form-select" onchange="calculateGST()">
+                                <option value="intra">Same State (CGST + SGST)</option>
+                                <option value="inter">Other State (IGST)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 text-center">
+                        <div id="gstChartContainer">
+                            <canvas id="gstChart"></canvas>
+                        </div>
+                        
+                        <div class="result-box mt-4 text-start">
+                            <div class="d-flex justify-content-between"><span>Base Amount:</span> <strong id="resBase">₹0</strong></div>
+                            <div class="d-flex justify-content-between"><span>Total GST:</span> <strong id="resGST" class="text-danger">₹0</strong></div>
+                            <hr>
+                            <div class="d-flex justify-content-between h5 text-success"><span>Total Price:</span> <strong id="resTotal">₹0</strong></div>
+                        </div>
+
+                        <div id="taxBreakdown" class="mt-3 small text-muted text-start">
+                            </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let myChart;
+
+    function initChart() {
+        const ctx = document.getElementById('gstChart').getContext('2d');
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Net Price', 'GST'],
+                datasets: [{
+                    data: [0, 0],
+                    backgroundColor: ['#0d6efd', '#ff4d4d'],
+                    borderWidth: 0
+                }]
+            },
+            options: { plugins: { legend: { display: false } }, cutout: '70%' }
+        });
+		document.getElementById('customGST').value = 18;
+    }
+
+    function updateCustom(val) {
+        document.getElementById('customGST').value = val;
+        calculateGST();
+    }
+
+    function manualGST() {
+        let radios = document.getElementsByName('gstRate');
+        radios.forEach(r => r.checked = false);
+        calculateGST();
+    }
+
+    function calculateGST() {
+	    let amountField = document.getElementById('amount');
+        let amount = parseFloat(document.getElementById('amount').value) || 0;
+		if (amount < 0) {
+		errorMsg.style.display = "block";
+        amountField.classList.add('is-invalid'); 
+        return;
+		} else {
+		    errorMsg.style.display = "none";
+			amountField.classList.remove('is-invalid');
+		}
+		let rateField = document.getElementById("customGST");
+        let rate = parseFloat(document.getElementById('customGST').value);
+        let isInclusive = document.getElementById('inclusive').checked;
+        let stateType = document.getElementById('stateType').value;
+
+        let gstAmount, netPrice, totalAmount;
+		
+		
+        if (isInclusive) {
+            netPrice = amount / (1 + (rate / 100));
+            gstAmount = amount - netPrice;
+            totalAmount = amount;
+        } else {
+            netPrice = amount;
+            gstAmount = (amount * rate) / 100;
+            totalAmount = amount + gstAmount;
+        }
+
+        document.getElementById('resBase').innerText = "₹" + netPrice.toFixed(2);
+        document.getElementById('resGST').innerText = "₹" + gstAmount.toFixed(2);
+        document.getElementById('resTotal').innerText = "₹" + totalAmount.toFixed(2);
+
+        let breakdown = "";
+        if (stateType === "intra") {
+            breakdown = `CGST (${rate/2}%): ₹${(gstAmount/2).toFixed(2)} | SGST (${rate/2}%): ₹${(gstAmount/2).toFixed(2)}`;
+        } else {
+            breakdown = `IGST (${rate}%): ₹${gstAmount.toFixed(2)}`;
+        }
+        document.getElementById('taxBreakdown').innerHTML = breakdown;
+
+        myChart.data.datasets[0].data = [netPrice, gstAmount];
+        myChart.update();
+    }
+
+    window.onload = initChart;
+</script>
+
+</body>
+</html>

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Loan Calculator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/highcharts@11.4.0/highcharts.js"></script>
+    <style>
+	    .amortization-wrapper{
+			border-radius:20px;
+			overflow:hidden;
+			border:1px solid #e2e8f0;
+			background:white;
+		}
+
+		.amortization-header,
+		.amortization-row{
+			display:grid;
+			grid-template-columns:0.7fr 1fr 1fr 1fr 1fr;
+			padding:10px 15px;
+			align-items:center;
+		}
+
+		.amortization-header{
+			background:#f1f5f9;
+			font-weight:700;
+			font-size:12px;
+			text-transform:uppercase;
+		}
+
+		.amortization-row{
+			border-top:1px solid #f1f5f9;
+			font-size:13px;
+		}
+
+		.amortization-row:nth-child(even){
+		    background:#fafafa;
+		}
+
+		.amortization-container{
+			max-height:300px;
+			overflow-y:auto;
+		}
+
+        :root {
+            --primary: #059669;
+            --secondary: #3b82f6;
+            --bg: #f8fafc;
+        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg); color: #1e293b; padding: 20px 0; }
+        
+        .glass-card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+        .input-section { padding: 30px; border-right: 1px solid #f1f5f9; }
+        .output-section { padding: 30px; background: #fafafa; }
+
+        #scenarioDisplay {
+            transition: all 0.3s ease;
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 2px solid transparent;
+        }
+        .scenario-time { background: #ecfdf5; border-color: #10b981; }
+        .scenario-emi { background: #eff6ff; border-color: #3b82f6; }
+        .scenario-savings { background: #fffbeb; border-color: #f59e0b; }
+
+        .big-number { font-size: 2.5rem; font-weight: 800; display: block; }
+        label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 5px; display: inline-block; }
+        .form-select-lg { border-radius: 12px; font-weight: 600; border: 2px solid #e2e8f0; }
+        .form-select-lg:focus { border-color: var(--primary); box-shadow: none; }
+
+        .info-tooltip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            background: #cbd5e1;
+            color: white;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: help;
+            margin-left: 6px;
+            position: relative;
+            vertical-align: middle;
+            margin-bottom: 5px;
+        }
+        .info-tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: 0.2s;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .info-tooltip:hover::after {
+            opacity: 1;
+            visibility: visible;
+            bottom: 140%;
+        }
+        .error-message {
+            color: #ef4444;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 6px;
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="glass-card row g-0">
+        <div class="col-lg-5 input-section">
+            <h4 class="fw-800 mb-4">Loan Details</h4>
+            
+            <div class="mb-3">
+                <label>Total Loan Amount (₹)</label>
+                <input type="number" id="loanAmount" class="form-control" min="0" value="500000" 
+                       onkeydown="return event.key !== '-' && event.key !== '+' && event.key !== 'e'"
+                       oninput="if(this.value < 0) this.value = 0; validatePrepayment(); calculate()">
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-6">
+                    <label>Interest (%)</label>
+                    <input type="number" id="interest" class="form-control" value="8.5" min="0.1" max="25" step="0.01"
+                           onkeydown="return event.key !== '-' && event.key !== '+' && event.key !== 'e'" 
+                           oninput="if(this.value>25)this.value=25; calculate()">
+                </div>
+                <div class="col-6">
+                    <label>Years</label>
+                    <input type="number" id="years" class="form-control" value="1" min="1" max="100"
+                           onkeydown="return event.key !== '-' && event.key !== '+' && event.key !== 'e'" 
+                           oninput="this.value=this.value.slice(0,3); if(this.value>100)this.value=100; calculate()">
+                </div>
+            </div>
+
+            <div class="mb-4 position-relative">
+                <label>Lump Sum Payment (₹)</label>
+                <span class="info-tooltip" id="prepayTooltip" data-tooltip="Max allowed: ₹500,000">?</span>
+                
+                <input type="number" id="prepayment" class="form-control border-primary" min="0"
+                       onkeydown="return event.key !== '-' && event.key !== '+' && event.key !== 'e'" 
+                       oninput="validatePrepayment(); calculate()">
+                       
+                <div id="prepayError" class="error-message">Cannot exceed total loan amount!</div>
+            </div>
+
+            <hr>
+
+            <div class="mb-3">
+                <label class="text-primary d-block">Choose Your Scenario</label>
+                <select id="scenarioType" class="form-select form-select-lg" onchange="calculate()">
+                    <option value="time">Option 1: Reduce My Loan Tenure</option>
+                    <option value="emi">Option 2: Reduce My Monthly EMI</option>
+                    <option value="savings">Option 3: Total Interest Savings</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="col-lg-7 output-section">
+            <div id="scenarioDisplay">
+                <span id="scenarioLabel" class="text-uppercase fw-bold small text-muted">Result</span>
+                <span id="scenarioResult" class="big-number">--</span>
+                <p id="scenarioSubtext" class="mb-0 mt-2 text-muted">Select a scenario to see details</p>
+            </div>
+
+            <div class="row g-3 mb-4 text-center">
+                <div class="col-4">
+                    <small class="text-muted d-block">Current EMI</small>
+                    <span class="fw-bold" id="baseEmi">₹0</span>
+                </div>
+                <div class="col-4">
+                    <small class="text-muted d-block">New Timeline</small>
+                    <span class="fw-bold" id="newTenure">0 Yrs</span>
+                </div>
+                <div class="col-4">
+                    <small class="text-muted d-block">Total Interest</small>
+                    <span class="fw-bold" id="totalInt">₹0</span>
+                </div>
+				<div class="row g-2 mb-4">
+				<div class="col-6">
+					<div class="p-3 border rounded-4 bg-white shadow-sm">
+						<small class="text-muted d-block fw-bold">Prepayment Benefit</small>
+						<span class="text-success fw-800" id="finalSavings">₹0</span>
+						<div class="small text-muted mt-1">Total Interest Saved</div>
+					</div>
+				</div>
+				<div class="col-6">
+					<div class="p-3 border rounded-4 bg-white shadow-sm">
+						<small class="text-muted d-block fw-bold">Effective Total Cost</small>
+						<span class="text-primary fw-800" id="effectiveTotal">₹0</span>
+						<div class="small text-muted mt-1">Loan + Interest Paid</div>
+					</div>
+				</div>
+			  </div>
+            </div>
+
+            <div id="chartContainer" style="height: 280px;"></div>
+				 <h5 class="mt-4 fw-bold">Amortization Schedule</h5>
+					<div class="amortization-wrapper mt-3">
+						<div class="amortization-header">
+						<div>Month</div>
+						<div>EMI</div>
+						<div>Principal</div>
+						<div>Interest</div>
+						<div>Balance</div>
+					</div>
+			    <div class="amortization-container">
+			      <div id="amortizationBody"></div>
+			    </div>
+			</div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    function validatePrepayment() {
+        const P = parseFloat(document.getElementById('loanAmount').value) || 0;
+        const prepayInput = document.getElementById('prepayment');
+        const errorMsg = document.getElementById('prepayError');
+        const tooltip = document.getElementById('prepayTooltip');
+        let extra = parseFloat(prepayInput.value) || 0;
+
+        tooltip.setAttribute('data-tooltip', 'Max valid amount: ₹' + P.toLocaleString('en-IN'));
+
+
+        if (extra > P) {
+            errorMsg.style.display = 'block';
+            prepayInput.classList.add('is-invalid'); 
+        } else {
+            errorMsg.style.display = 'none';
+            prepayInput.classList.remove('is-invalid');
+        }
+    }
+
+    function calculate() {
+        const P = parseFloat(document.getElementById('loanAmount').value) || 0;
+        const annualRate = parseFloat(document.getElementById('interest').value) || 0;
+        const years = parseFloat(document.getElementById('years').value) || 0;
+        let extra = parseFloat(document.getElementById('prepayment').value) || 0;
+        const mode = document.getElementById('scenarioType').value;
+        
+		if (extra > P) extra = P; 
+
+        const r = (annualRate / 100) / 12;
+        const n = years * 12;
+		
+		let baseEmi = 0;
+
+        baseEmi = (P > 0 && n > 0) ? (P * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1) : 0;
+        const originalInterest = (baseEmi * n) - P;
+
+        const newP = P - extra;
+
+        let remainingMonths = 0;
+        if (newP > 0) {
+            remainingMonths = Math.log(baseEmi / (baseEmi - newP * r)) / Math.log(1 + r);
+        }
+        
+        const monthsSaved = n - remainingMonths;
+        const interestWithPrepay = (baseEmi * remainingMonths) - newP;
+        const interestSaved = originalInterest - interestWithPrepay;
+        
+        
+        let reducedEmi = 0;
+        if (newP > 0) {
+            reducedEmi = (newP * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+        }
+        const effectiveTotalCost = P + (mode === 'time' ? interestWithPrepay : (reducedEmi * n) - (P - extra));
+        const displayDiv = document.getElementById('scenarioDisplay');
+        const label = document.getElementById('scenarioLabel');
+        const result = document.getElementById('scenarioResult');
+        const subtext = document.getElementById('scenarioSubtext');
+
+        displayDiv.className = ""; 
+
+        if (mode === 'time') {
+            displayDiv.classList.add('scenario-time');
+            label.innerText = "Time Saved";
+            result.innerText = monthsSaved.toFixed(2) + " Months";
+            result.style.color = "#059669";
+            subtext.innerText = `Your loan will end in ${(remainingMonths/12).toFixed(1)} years instead of ${years} years.`;
+        } else if (mode === 'emi') {
+            displayDiv.classList.add('scenario-emi');
+            label.innerText = "New Reduced EMI";
+            result.innerText = "₹" + reducedEmi.toLocaleString('en-IN', {maximumFractionDigits: 0});
+            result.style.color = "#3b82f6";
+            subtext.innerText = `Your monthly burden drops by ₹${Math.round(baseEmi - reducedEmi).toLocaleString('en-IN')}.`;
+        } else {
+            displayDiv.classList.add('scenario-savings');
+            label.innerText = "Total Money Saved";
+            result.innerText = "₹" + interestSaved.toLocaleString('en-IN', {maximumFractionDigits: 0});
+            result.style.color = "#f59e0b";
+            subtext.innerText = "This is the extra interest you would have paid to the bank.";
+        }
+
+        document.getElementById('baseEmi').innerText = "₹" + baseEmi.toLocaleString('en-IN', {maximumFractionDigits: 2});
+        document.getElementById('newTenure').innerText = (remainingMonths / 12).toFixed(1) + " Yrs";
+        document.getElementById('totalInt').innerText = "₹" + originalInterest.toLocaleString('en-IN', {maximumFractionDigits: 2});
+		document.getElementById('finalSavings').innerText = "₹" + interestSaved.toLocaleString('en-IN', {maximumFractionDigits: 0});
+        document.getElementById('effectiveTotal').innerText = "₹" + effectiveTotalCost.toLocaleString('en-IN', {maximumFractionDigits: 0});
+
+        Highcharts.chart('chartContainer', {
+            accessibility: {
+            enabled: false
+            },
+            chart: { type: 'pie', backgroundColor: 'transparent' },
+            title: { text: null },
+            series: [{
+                name: 'Amount',
+                innerSize: '70%',
+                data: [
+                    { name: 'Principal', y: P, color: '#3b82f6' },
+                    { name: 'Interest You Pay', y: (mode === 'time' ? interestWithPrepay : (reducedEmi * n) - newP), color: '#cbd5e1' },
+                    { name: 'Interest Saved', y: interestSaved, color: '#059669' }
+                ]
+            }],
+            credits: { enabled: false },
+            tooltip: { valuePrefix: '₹' }
+        });
+		
+		generateAmortization(newP,r,mode==='time'?Math.round(remainingMonths):n,mode==='time'?baseEmi:reducedEmi);
+    }
+	function generateAmortization(P,r,n,emi){
+
+		const body=document.getElementById("amortizationBody");
+		body.innerHTML="";
+		let balance=P;
+
+		for(let month=1;month<=n;month++){
+
+		let interest=balance*r;
+		let principal=emi-interest;
+		balance-=principal;
+		if(balance<0)balance=0;
+
+		const row=document.createElement("div");
+		row.className="amortization-row";
+
+		row.innerHTML=`
+		<div>${month}</div>
+		<div>₹${emi.toLocaleString('en-IN',{maximumFractionDigits:0})}</div>
+		<div>₹${principal.toLocaleString('en-IN',{maximumFractionDigits:0})}</div>
+		<div>₹${interest.toLocaleString('en-IN',{maximumFractionDigits:0})}</div>
+		<div>₹${balance.toLocaleString('en-IN',{maximumFractionDigits:0})}</div>
+		`;
+
+		body.appendChild(row);
+
+		if(balance<=0)break;
+		}
+
+		}
+
+    window.onload = function() {
+        validatePrepayment();
+        calculate();
+    };
+</script>
+</body>
+</html>

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CTC Calculator</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: #0f172a; }
+        .card-solid { background: #ffffff; border-radius: 1.25rem; border: 1px solid #e2e8f0; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); }
+        .btn-toggle { background: #f8fafc; border-radius: 12px; padding: 4px; display: flex; border: 1px solid #e2e8f0; }
+        .btn-toggle button { flex: 1; border: none; padding: 12px 8px; border-radius: 10px; font-weight: 700; font-size: 0.875rem; transition: 0.3s; color: #64748b; }
+        .btn-toggle .active { background: #4f46e5; color: white; box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25); }
+        .amt-hero { font-size: clamp(2rem, 5vw, 2.5rem); font-weight: 800; color: #10b981; }
+        .input-field { width: 100%; padding: 14px; border: 2px solid #e2e8f0; border-radius: 12px; outline: none; font-weight: 600; transition: 0.2s; }
+        .input-field:focus { border-color: #4f46e5; background-color: #fefeff; }
+        .input-field::-webkit-outer-spin-button, .input-field::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .row-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f8fafc; font-size: 0.95rem; }
+    </style>
+</head>
+<body class="antialiased">
+
+<div class="container mx-auto px-4 py-6 md:py-12 max-w-6xl">
+    <header class="text-center mb-8 md:mb-12">
+        <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900">CTC Salary Calculator</h1>
+        <p class="text-slate-500 mt-2 font-medium">Responsive & Precise (FY 2025-26)</p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div class="lg:col-span-5 space-y-6">
+            <div class="card-solid p-6">
+                <h2 class="text-lg font-bold mb-5 flex items-center gap-2 text-slate-800">
+                    <i class="fa-solid fa-gear text-indigo-600"></i> Settings
+                </h2>
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-2 text-left">Annual / Monthly CTC (₹)</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₹</span>
+                            <input type="number" id="ctc" class="input-field pl-10" placeholder="0" value="1200000">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-600 mb-2 text-left">Tax Regime</label>
+                        <div class="btn-toggle" id="regimeBox">
+                            <button class="active" onclick="setRegime('new', this)">New Regime</button>
+                            <button onclick="setRegime('old', this)">Old Regime</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2 text-left">Basic %</label>
+                            <input type="number" id="basicPct" class="input-field" value="50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2 text-left">Prof. Tax</label>
+                            <input type="number" id="pt" class="input-field" value="200">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-7 space-y-6">
+            <div class="card-solid p-6 md:p-8 border-indigo-500 border-2 bg-indigo-50/20 relative">
+			<div class="absolute top-0 right-0 p-4 opacity-10">
+                    <i class="fa-solid fa-wallet text-6xl text-indigo-600"></i>
+                </div>
+                <div class="text-center md:text-left mb-8">
+                    <span class="inline-block px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold uppercase mb-3">Monthly In-Hand</span>
+                    <div id="netMonthly" class="amt-hero">₹0</div>
+                    <div class="text-slate-500 font-bold mt-2">Annual Take Home: <span id="netAnnual" class="text-slate-800">₹0</span></div>
+                </div>
+                <div class="grid sm:grid-cols-2 gap-x-12 gap-y-1">
+                    <div class="row-item"><span>Monthly Gross</span><span id="grossShow" class="font-bold">₹0</span></div>
+                    <div class="row-item"><span>Monthly EPF</span><span id="pfShow" class="text-rose-500 font-bold">-₹0</span></div>
+                    <div class="row-item"><span>Monthly Tax</span><span id="taxShow" class="text-rose-500 font-bold">-₹0</span></div>
+                    <div class="row-item"><span>Prof. Tax</span><span id="ptShow" class="text-rose-500 font-bold">-₹0</span></div>
+                </div>
+                <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <button onclick="downloadPDF()" class="w-full bg-slate-900 text-white font-bold py-3.5 rounded-xl hover:bg-black transition-all">PDF Report</button>
+                    <button onclick="downloadExcel()" class="w-full bg-white text-emerald-600 border-2 border-emerald-600 font-bold py-3.5 rounded-xl hover:bg-emerald-50 transition-all">Excel Sheet</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="lg:col-span-12">
+            <div class="card-solid overflow-hidden">
+                <div class="p-5 border-b bg-slate-50">
+                    <h3 class="font-bold text-slate-700 text-sm uppercase tracking-wider">Salary Component Breakdown</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left min-w-[500px]">
+                        <thead class="bg-white border-b text-slate-400 text-xs uppercase">
+                            <tr>
+                                <th class="p-5">Component</th>
+                                <th class="p-5 text-right">Monthly</th>
+                                <th class="p-5 text-right">Annually</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-slate-100 font-semibold">
+                            <tr><td class="p-5 text-slate-600">Basic Salary</td><td class="p-5 text-right" id="tabBasicM">₹0</td><td class="p-5 text-right" id="tabBasicA">₹0</td></tr>
+                            <tr><td class="p-5 text-slate-600">HRA (40% of Basic)</td><td class="p-5 text-right" id="tabHraM">₹0</td><td class="p-5 text-right" id="tabHraA">₹0</td></tr>
+                            <tr><td class="p-5 text-slate-600">Other Allowances</td><td class="p-5 text-right" id="tabOtherM">₹0</td><td class="p-5 text-right" id="tabOtherA">₹0</td></tr>
+                            <tr class="bg-indigo-50/40 text-indigo-700"><td class="p-5 font-bold">Total In-Hand (Net)</td><td class="p-5 text-right font-bold" id="tabNetM">₹0</td><td class="p-5 text-right font-bold" id="tabNetA">₹0</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentRegime = 'new';
+
+    const inputs = document.querySelectorAll('input[type="number"]');
+    inputs.forEach(input => {
+        input.addEventListener('keydown', (e) => {
+            if (['-', '+', 'e', 'E', '/', '*', ','].includes(e.key)) e.preventDefault();
+        });
+        input.addEventListener('input', calculate);
+    });
+
+    function setRegime(r, btn) {
+        currentRegime = r;
+        document.querySelectorAll('#regimeBox button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        calculate();
+    }
+
+    function calculate() {
+        let rawCtc = parseFloat(document.getElementById('ctc').value) || 0;
+        let ptMonthly = parseFloat(document.getElementById('pt').value) || 0;
+        let basicPct = (parseFloat(document.getElementById('basicPct').value) || 50) / 100;
+
+        let annualCtc = (rawCtc < 150000 && rawCtc > 0) ? rawCtc * 12 : rawCtc;
+        if (annualCtc < 1) { resetUI(); return; }
+
+        let annualBasic = annualCtc * basicPct;
+        let annualHra = annualBasic * 0.40; 
+        let annualOther = (annualCtc/12 - annualBasic/12 - annualHra/12) * 12;
+
+        let monthlyPF = Math.min(1800, (annualBasic / 12) * 0.12);
+        let annualPF = monthlyPF * 12;
+
+        let stdDeduction = (currentRegime === 'new') ? 75000 : 50000;
+        let taxableIncome = Math.max(0, annualCtc - annualPF - (ptMonthly * 12) - stdDeduction);
+        
+        let annualTax = calculateTax(taxableIncome, currentRegime);
+        let netAnnual = annualCtc - annualPF - annualTax - (ptMonthly * 12);
+
+        updateUI(netAnnual / 12, netAnnual, annualCtc, monthlyPF, annualTax / 12, ptMonthly, annualBasic / 12, annualHra/12, annualOther/12);
+    }
+
+    function calculateTax(income, regime) {
+        let tax = 0;
+        if (regime === 'new') {
+            if (income <= 700000) return 0;
+            if (income > 1500000) tax += (income - 1500000) * 0.3 + 150000;
+            else if (income > 1200000) tax += (income - 1200000) * 0.2 + 90000;
+            else if (income > 900000) tax += (income - 900000) * 0.15 + 45000;
+            else if (income > 600000) tax += (income - 600000) * 0.1 + 15000;
+            else if (income > 400000) tax += (income - 400000) * 0.05;
+        } else {
+            if (income <= 250000) return 0;
+            if (income > 1000000) tax += (income - 1000000) * 0.3 + 112500;
+            else if (income > 500000) tax += (income - 500000) * 0.2 + 12500;
+            else if (income > 250000) tax += (income - 250000) * 0.05;
+        }
+        return tax > 0 ? tax * 1.04 : 0;
+    }
+
+    function updateUI(mNet, aNet, ctc, pf, tax, pt, bM, hM, oM) {
+        const fmt = (v) => "₹" + Math.round(v).toLocaleString('en-IN');
+
+        document.getElementById('netMonthly').innerText = fmt(mNet);
+        document.getElementById('netAnnual').innerText = fmt(aNet);
+        document.getElementById('grossShow').innerText = fmt(ctc / 12);
+        document.getElementById('pfShow').innerText = "-" + fmt(pf);
+        document.getElementById('taxShow').innerText = "-" + fmt(tax);
+        document.getElementById('ptShow').innerText = "-" + fmt(pt);
+
+        document.getElementById('tabBasicM').innerText = fmt(bM);
+        document.getElementById('tabBasicA').innerText = fmt(bM * 12);
+        document.getElementById('tabHraM').innerText = fmt(hM);
+        document.getElementById('tabHraA').innerText = fmt(hM * 12);
+        document.getElementById('tabOtherM').innerText = fmt(oM);
+        document.getElementById('tabOtherA').innerText = fmt(oM * 12);
+        document.getElementById('tabNetM').innerText = fmt(mNet);
+        document.getElementById('tabNetA').innerText = fmt(aNet);
+    }
+
+    function resetUI() { updateUI(0, 0, 0, 0, 0, 0, 0, 0, 0); }
+
+    function downloadPDF() {
+		const { jsPDF } = window.jspdf;
+		const doc = new jsPDF();
+
+		doc.setFillColor(15, 23, 42); 
+		doc.rect(0, 0, 210, 40, 'F');
+		doc.setTextColor(255, 255, 255);
+		doc.setFontSize(22);
+		doc.text("SALARY BREAKDOWN REPORT", 20, 25);
+		doc.setFontSize(10);
+		doc.text("Generated by CalcMaster Pro Suite 2026", 20, 32);
+
+		const clean = (id) => {
+			let val = document.getElementById(id).innerText;
+			return val.replace(/[^\d,.-]/g, '');
+		};
+
+		doc.setTextColor(0, 0, 0);
+		doc.setFontSize(12);
+		let startY = 60;
+
+		const rows = [
+			["Component", "Monthly (INR)", "Annual (INR)"],
+			["Basic Pay", clean('tabBasicM'), clean('tabBasicA')],
+			["HRA", clean('tabHraM'), clean('tabHraA')],
+			["Other Allowances", clean('tabOtherM'), clean('tabOtherA')],
+			["Deductions", "-" + clean('taxShow'), "-"],
+			["NET TAKE HOME", clean('netMonthly'), clean('netAnnual')]
+		];
+
+		rows.forEach((row, index) => {
+			if (index === 0) {
+				doc.setFont("helvetica", "bold");
+				doc.setFillColor(241, 245, 249);
+				doc.rect(15, startY - 6, 180, 10, 'F'); 
+			} else if (index === rows.length - 1) {
+				doc.setFont("helvetica", "bold");
+				doc.setTextColor(37, 99, 235); 
+			} else {
+				doc.setFont("helvetica", "normal");
+				doc.setTextColor(0, 0, 0);
+			}
+
+			doc.text(row[0], 20, startY);
+			doc.text(row[1], 100, startY);
+			doc.text(row[2], 155, startY);
+
+			doc.setDrawColor(200, 200, 200);
+			doc.setLineWidth(0.1);          
+			doc.line(15, startY + 3, 195, startY + 3); 
+			
+			startY += 12; 
+		});
+
+		doc.save("Salary_Report.pdf");
+	}
+
+    function downloadExcel() {
+        let data = [["Component", "Monthly", "Annual"], ["Net In-Hand", document.getElementById('netMonthly').innerText, document.getElementById('netAnnual').innerText]];
+        let ws = XLSX.utils.aoa_to_sheet(data);
+        let wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Salary");
+        XLSX.writeFile(wb, "Salary.xlsx");
+    }
+
+    window.onload = calculate;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+</body>
+</html>
